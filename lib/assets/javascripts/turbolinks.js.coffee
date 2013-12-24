@@ -3,7 +3,7 @@ cacheSize      = 10
 currentState   = null
 loadedAssets   = null
 htmlExtensions = ['html']
-
+htmlPathRegExps = []
 referer        = null
 
 createDocument = null
@@ -129,6 +129,9 @@ removeHash = (url) ->
     link.href = url
   link.href.replace link.hash, ''
 
+urlPath = (url) ->
+  url.replace(/^\w+:\/\/[^\/]+/, "").replace(/\?.*/, "")
+
 popCookie = (name) ->
   value = document.cookie.match(new RegExp(name+"=(\\w+)"))?[1].toUpperCase() or ''
   document.cookie = name + '=; expires=Thu, 01-Jan-70 00:00:01 GMT; path=/'
@@ -247,7 +250,10 @@ anchoredLink = (link) ->
 
 nonHtmlLink = (link) ->
   url = removeHash link
-  url.match(/\.[a-z]+(\?.*)?$/g) and not url.match(new RegExp("\\.(?:#{htmlExtensions.join('|')})?(\\?.*)?$", 'g'))
+  url.match(/^[^?]+\.[a-z]+(\?.*)?$/g) and
+  not url.match(new RegExp("^[^?]+\\.(?:#{htmlExtensions.join('|')})?(\\?.*)?$")) and
+  (htmlPathRegExps.length == 0 or htmlPathRegExps.filter((re) -> urlPath(url).match(re)) == 0)
+
 
 noTurbolink = (link) ->
   until ignore or link is document
@@ -267,6 +273,10 @@ ignoreClick = (event, link) ->
 allowLinkExtensions = (extensions...) ->
   htmlExtensions.push extension for extension in extensions
   htmlExtensions
+
+allowLinkPathRegExps = (regexps...) ->
+  htmlPathRegExps.push regexp for regexp in regexps
+  htmlPathRegExps
 
 installDocumentReadyPageEventTriggers = ->
   document.addEventListener 'DOMContentLoaded', ( ->
@@ -328,5 +338,6 @@ else
 #   Turbolinks.pagesCached()
 #   Turbolinks.pagesCached(20)
 #   Turbolinks.allowLinkExtensions('md')
+#   Turbolinks.allowLinkPathRegExps(/^\/items\/[^\w.-]+$/)
 #   Turbolinks.supported
-@Turbolinks = { visit, pagesCached, allowLinkExtensions, supported: browserSupportsTurbolinks }
+@Turbolinks = { visit, pagesCached, allowLinkExtensions, allowLinkPathRegExps, supported: browserSupportsTurbolinks }
